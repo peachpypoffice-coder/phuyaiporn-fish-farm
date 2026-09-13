@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>บจก.สุทธิ อินเตอร์ ฟาร์ม (ฟาร์มปลาผู้ใหญ่พร) - ระบบบันทึกการจองและคิวจัดส่งพันธุ์ปลา</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- SheetJS (xlsx) for Excel Export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            farm: {
+              blue: '#0284c7',
+              'blue-dark': '#0369a1',
+              'blue-light': '#e0f2fe',
+              yellow: '#f59e0b',
+              'yellow-dark': '#d97706',
+              'yellow-light': '#fef3c7',
+              bg: '#f8fafc'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col antialiased">
+
+  <!-- TOP HEADER / NAVBAR -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        
+        <!-- Brand Logo & Title -->
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('calendar')">
+          <img src="logo.svg" onerror="this.onerror=null; this.src='logo.png';" alt="โลโก้ฟาร์มปลาผู้ใหญ่พร" class="w-14 h-14 object-contain rounded-2xl bg-white p-1 shadow-md border-2 border-amber-300 flex-shrink-0">
+          <div>
+            <div class="flex items-center space-x-2">
+              <h1 class="text-lg sm:text-xl font-bold text-sky-950 tracking-tight">บจก.สุทธิ อินเตอร์ ฟาร์ม</h1>
+              <span class="bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-amber-300">ฟาร์มปลาผู้ใหญ่พร</span>
+            </div>
+            <p class="text-xs text-slate-500 hidden sm:block">68 ม.1 ต.มารวิชัย อ.เสนา จ.พระนครศรีอยุธยา • โทร 095-996-5569, 081-928-6697</p>
+            <p class="text-[11px] text-slate-500 sm:hidden">โทร 095-996-5569, 081-928-6697</p>
+          </div>
+        </div>
+
+        <!-- Right Side: New Booking Button & User Profile -->
+        <div class="flex items-center space-x-2 sm:space-x-4">
+          <!-- Big Yellow Booking Button -->
+          <button id="btn-top-new-order" onclick="openNewOrderModal()" class="btn-large btn-farm-yellow shadow-md hover:brightness-105">
+            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+            <span class="hidden sm:inline">จองพันธุ์ปลาใหม่</span>
+            <span class="sm:hidden">จองใหม่</span>
+          </button>
+
+          <!-- Cloudflare / Server Sync Status Indicator -->
+          <div id="cloud-sync-indicator" class="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200" title="สถานะการเชื่อมต่อ Cloudflare">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="cloud-sync-text">คลาวด์ออนไลน์</span>
+          </div>
+
+          <!-- User Role / Profile Button -->
+          <div class="relative">
+            <button onclick="openLoginModal()" class="flex items-center space-x-2 p-2 rounded-xl hover:bg-slate-100 border border-slate-200 transition">
+              <span id="current-user-avatar" class="text-2xl">👨‍🌾</span>
+              <div class="text-left hidden md:block">
+                <p id="current-user-name" class="text-sm font-semibold text-slate-800 leading-tight">ผู้ใหญ่พร</p>
+                <span id="current-user-badge" class="badge-tag bg-amber-500 text-white text-[10px] py-0 px-1.5">CEO</span>
+              </div>
+              <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- NAVIGATION TABS (ใหญ่ กดง่าย สไตล์โมเดิร์น) -->
+    <div class="bg-white border-t border-slate-100 shadow-inner overflow-x-auto scrollbar-none">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-1 sm:space-x-2 py-2 min-w-max">
+        
+        <button id="tab-btn-calendar" onclick="switchTab('calendar')" class="nav-tab-btn active px-4 py-3 rounded-xl font-medium text-sm sm:text-base flex items-center space-x-2 bg-sky-600 text-white shadow-sm transition">
+          <i data-lucide="calendar" class="w-5 h-5"></i>
+          <span>ปฏิทินคิวงานทั้งเดือน</span>
+        </button>
+
+        <button id="tab-btn-daily" onclick="switchTab('daily')" class="nav-tab-btn px-4 py-3 rounded-xl font-medium text-sm sm:text-base flex items-center space-x-2 text-slate-600 hover:bg-sky-50 transition">
+          <i data-lucide="truck" class="w-5 h-5"></i>
+          <span>คิวจัดส่งประจำวัน</span>
+          <span id="badge-today-count" class="bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+        </button>
+
+        <button id="tab-btn-orders" onclick="switchTab('orders')" class="nav-tab-btn px-4 py-3 rounded-xl font-medium text-sm sm:text-base flex items-center space-x-2 text-slate-600 hover:bg-sky-50 transition">
+          <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+          <span>รายการจองทั้งหมด</span>
+        </button>
+
+        <button id="tab-btn-claims" onclick="switchTab('claims')" class="nav-tab-btn px-4 py-3 rounded-xl font-medium text-sm sm:text-base flex items-center space-x-2 text-slate-600 hover:bg-sky-50 transition">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+          <span>แจ้งเคลม & ปลาเสียหาย</span>
+          <span id="badge-claims-count" class="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+        </button>
+
+        <button id="tab-btn-customers" onclick="switchTab('customers')" class="nav-tab-btn px-4 py-3 rounded-xl font-medium text-sm sm:text-base flex items-center space-x-2 text-slate-600 hover:bg-sky-50 transition">
+          <i data-lucide="users" class="w-5 h-5"></i>
+          <span>ประวัติลูกค้า & VIP</span>
+        </button>
+
+        <button id="tab-btn-analytics" onclick="switchTab('analytics')" class="nav-tab-btn px-4 py-3 rounded-xl font-medium text-sm sm:text-base flex items-center space-x-2 text-slate-600 hover:bg-sky-50 transition">
+          <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+          <span>สถิติฟาร์ม & รายงาน</span>
+        </button>
+
+        <button id="tab-btn-permissions" onclick="switchTab('permissions')" class="nav-tab-btn hidden px-4 py-3 rounded-xl font-medium text-sm sm:text-base flex items-center space-x-2 text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition">
+          <i data-lucide="shield-check" class="w-5 h-5 text-amber-600"></i>
+          <span>สิทธิ์การใช้งาน (CEO)</span>
+        </button>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ================================================================= -->
+    <!-- TAB 1: ปฏิทินคิวงานทั้งเดือน (MONTHLY CALENDAR VIEW) -->
+    <!-- ================================================================= -->
+    <section id="tab-calendar" class="tab-pane space-y-6">
+      
+      <!-- Calendar Header & Navigation -->
+      <div class="farm-card p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <span class="text-sky-600">📅</span> ปฏิทินคิวส่งและรับพันธุ์ปลา
+          </h2>
+          <p class="text-sm text-slate-500 mt-1">เช็คคิวงานทั้งเดือน ดูวันที่คิวว่าง และวางแผนเตรียมปลาล่วงหน้า</p>
+        </div>
+
+        <div class="flex items-center space-x-3 self-start md:self-auto">
+          <button onclick="changeMonth(-1)" class="btn-large bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 px-4 rounded-xl">
+            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+            <span>เดือนก่อนหน้า</span>
+          </button>
+          <span id="calendar-month-label" class="text-lg font-bold text-sky-900 px-3 py-1 bg-sky-50 rounded-xl border border-sky-200 min-w-[160px] text-center">
+            กันยายน 2567
+          </span>
+          <button onclick="changeMonth(1)" class="btn-large bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 px-4 rounded-xl">
+            <span>เดือนถัดไป</span>
+            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Legend & Stats bar -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-white p-3 rounded-xl border border-slate-200 flex items-center space-x-3">
+          <div class="w-4 h-4 rounded-full bg-sky-500"></div>
+          <div>
+            <div class="text-xs text-slate-500">คิวจัดส่งถึงที่</div>
+            <div id="stat-month-delivery" class="text-base font-bold text-sky-700">0 ออเดอร์</div>
+          </div>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-slate-200 flex items-center space-x-3">
+          <div class="w-4 h-4 rounded-full bg-amber-500"></div>
+          <div>
+            <div class="text-xs text-slate-500">คิวมารับเองหน้าฟาร์ม</div>
+            <div id="stat-month-pickup" class="text-base font-bold text-amber-700">0 ออเดอร์</div>
+          </div>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-slate-200 flex items-center space-x-3">
+          <div class="w-4 h-4 rounded-full bg-emerald-500"></div>
+          <div>
+            <div class="text-xs text-slate-500">ส่งสำเร็จแล้ว</div>
+            <div id="stat-month-delivered" class="text-base font-bold text-emerald-700">0 ออเดอร์</div>
+          </div>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-slate-200 flex items-center space-x-3">
+          <div class="w-4 h-4 rounded-full bg-red-500"></div>
+          <div>
+            <div class="text-xs text-slate-500">มีเคลม/ปัญหา</div>
+            <div id="stat-month-problem" class="text-base font-bold text-red-700">0 ออเดอร์</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendar Grid -->
+      <div class="farm-card overflow-hidden">
+        <!-- Weekday Headers -->
+        <div class="grid grid-cols-7 bg-sky-100/70 border-b border-sky-200 text-center font-bold text-sm text-sky-900 py-3">
+          <div class="text-red-500">อาทิตย์</div>
+          <div>จันทร์</div>
+          <div>อังคาร</div>
+          <div>พุธ</div>
+          <div>พฤหัสบดี</div>
+          <div>ศุกร์</div>
+          <div class="text-blue-600">เสาร์</div>
+        </div>
+
+        <!-- Days Grid (Rendered by JS) -->
+        <div id="calendar-days-grid" class="grid grid-cols-7 divide-x divide-y divide-slate-200 bg-white">
+          <!-- Calendar cells inserted here -->
+        </div>
+      </div>
+
+      <!-- Selected Date Quick Inspector -->
+      <div id="calendar-selected-day-container" class="farm-card p-6 bg-gradient-to-r from-sky-50 to-amber-50 border-sky-200">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-sky-200/60">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-sky-600 bg-sky-100 px-3 py-1 rounded-full">คิวงานประจำวันที่เลือก</span>
+            <h3 id="selected-day-title" class="text-xl font-bold text-slate-900 mt-2">วันที่ 12 กันยายน 2567</h3>
+          </div>
+          <button onclick="openNewOrderWithDate()" class="btn-large btn-primary-blue py-2.5 px-5">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+            <span>เพิ่มการจองในวันนี้</span>
+          </button>
+        </div>
+
+        <div id="selected-day-orders-list" class="mt-4 space-y-3">
+          <!-- Orders of selected day rendered by JS -->
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ================================================================= -->
+    <!-- TAB 2: คิวจัดส่งประจำวัน (DAILY DISPATCH QUEUE) -->
+    <!-- ================================================================= -->
+    <section id="tab-daily" class="tab-pane hidden space-y-6">
+      
+      <!-- Date Bar & Filter -->
+      <div class="farm-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-sky-600 to-sky-700 text-white shadow-md">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🚚</span>
+            <h2 class="text-2xl font-bold tracking-tight">คิวจัดส่งและส่งมอบประจำวัน</h2>
+          </div>
+          <p class="text-sky-100 text-sm mt-1">คิวงานวันนี้สำหรับเตรียมปลา โหลดขึ้นรถ และคนขับรถส่งของ</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <div class="flex items-center gap-2 bg-white/10 p-1.5 px-3 rounded-xl backdrop-blur-sm border border-white/20">
+            <label for="daily-date-picker" class="text-sm font-medium text-white flex items-center gap-1">
+              <i data-lucide="calendar" class="w-4 h-4"></i> วันที่:
+            </label>
+            <input type="date" id="daily-date-picker" onchange="renderDailyQueue()" class="bg-white text-slate-800 font-semibold px-3 py-1.5 rounded-lg text-sm border-none shadow focus:ring-2 focus:ring-amber-400">
+            <button onclick="setDailyDateToToday()" class="bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold px-3 py-1.5 rounded-lg text-sm transition">
+              วันนี้
+            </button>
+          </div>
+          <button id="btn-daily-add-driver" onclick="openAddDriverModal()" class="bg-white/20 hover:bg-white/30 text-white font-semibold text-xs py-2 px-3 rounded-xl border border-white/30 flex items-center gap-1 transition">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+            <span>+ เพิ่มคนขับ</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Fish Loading Summary Box (สรุปยอดรวมปลาที่ต้องเตรียมตัก/ขึ้นรถในวันนั้น) -->
+      <div class="farm-card p-5 bg-amber-50/80 border-amber-200">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold text-amber-900 flex items-center gap-2 text-lg">
+            <i data-lucide="package-check" class="w-6 h-6 text-amber-600"></i>
+            <span>สรุปสินค้าที่ต้องเตรียมขึ้นรถ / ส่งมอบในวันนี้</span>
+          </h3>
+          <span class="text-xs bg-amber-200 text-amber-900 font-semibold px-2.5 py-1 rounded-full">
+            รวมทุกออเดอร์
+          </span>
+        </div>
+        
+        <div id="daily-prep-summary-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Driver Delivery Cards List -->
+      <div id="daily-orders-container" class="space-y-4">
+        <!-- Rendered by JS -->
+      </div>
+
+    </section>
+
+
+    <!-- ================================================================= -->
+    <!-- TAB 3: รายการจองทั้งหมด (ALL ORDERS LIST) -->
+    <!-- ================================================================= -->
+    <section id="tab-orders" class="tab-pane hidden space-y-6">
+      
+      <!-- Top Filters & Search -->
+      <div class="farm-card p-5 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+              <span class="text-sky-600">📋</span> รายการสั่งจองทั้งหมด
+            </h2>
+            <p class="text-sm text-slate-500">ค้นหาประวัติการจอง ตรวจสอบสถานะ และออกใบเสร็จ/ใบส่งของ</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="exportOrdersToExcel()" class="btn-large bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-xl shadow-sm">
+              <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+              <span>ส่งออก Excel</span>
+            </button>
+            <button onclick="openNewOrderModal()" class="btn-large btn-farm-yellow py-2 px-5 rounded-xl shadow-sm">
+              <i data-lucide="plus-circle" class="w-5 h-5"></i>
+              <span>จองพันธุ์ปลาใหม่</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100">
+          <div class="relative">
+            <i data-lucide="search" class="w-5 h-5 text-slate-400 absolute left-3 top-3.5"></i>
+            <input type="text" id="filter-order-search" oninput="renderOrdersList()" placeholder="ค้นหาชื่อลูกค้า, เบอร์โทร, รหัสจอง..." class="input-large pl-10 w-full">
+          </div>
+
+          <div>
+            <select id="filter-order-status" onchange="renderOrdersList()" class="input-large w-full bg-white">
+              <option value="all">ทุกสถานะการส่ง</option>
+              <option value="pending">⏳ รอดำเนินการ</option>
+              <option value="preparing">🐟 กำลังเตรียมปลา</option>
+              <option value="in_transit">🚚 อยู่ระหว่างจัดส่ง</option>
+              <option value="delivered">✅ ส่งสำเร็จ</option>
+              <option value="problem">⚠️ มีปัญหา / เคลม</option>
+              <option value="cancelled">❌ ยกเลิกแล้ว</option>
+            </select>
+          </div>
+
+          <div>
+            <select id="filter-order-type" onchange="renderOrdersList()" class="input-large w-full bg-white">
+              <option value="all">ทุกรูปแบบการรับ</option>
+              <option value="delivery">🚚 จัดส่งถึงที่</option>
+              <option value="pickup">🏠 มารับเองหน้าฟาร์ม</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orders Table Container -->
+      <div class="farm-card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-100/80 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                <th class="py-3.5 px-4 cursor-pointer select-none group" onclick="toggleOrderDateSort()">
+                  <div class="flex items-center gap-1.5">
+                    <span>รหัส / วันที่ส่ง</span>
+                    <span id="order-sort-icon" class="text-sky-500 font-black text-sm">↓</span>
+                  </div>
+                </th>
+                <th class="py-3.5 px-4">ลูกค้า & ที่อยู่</th>
+                <th class="py-3.5 px-4">รูปแบบ</th>
+                <th class="py-3.5 px-4">รายการสินค้า</th>
+                <th class="py-3.5 px-4 text-right">ยอดสุทธิ</th>
+                <th class="py-3.5 px-4 text-right">มัดจำ / คงเหลือ</th>
+                <th class="py-3.5 px-4 text-center">สถานะ</th>
+                <th class="py-3.5 px-4 text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="orders-table-body" class="divide-y divide-slate-100 text-sm">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ================================================================= -->
+    <!-- TAB 4: แจ้งเคลม & ปลาเสียหาย (CLAIMS & QC APPROVAL) -->
+    <!-- ================================================================= -->
+    <section id="tab-claims" class="tab-pane hidden space-y-6">
+      
+      <div class="farm-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 border-l-red-500">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <span class="text-red-500">⚠️</span> บันทึกแจ้งเคลมและปลาเสียหาย
+          </h2>
+          <p class="text-sm text-slate-500 mt-1">เก็บหลักฐานภาพถ่ายปลาเสียหายจริง ตรวจสอบโดยฝ่าย QC และบันทึกแนวทางชดเชย</p>
+        </div>
+
+        <button onclick="openNewClaimModal()" class="btn-large bg-red-600 hover:bg-red-700 text-white py-2.5 px-5 shadow-sm">
+          <i data-lucide="plus-circle" class="w-5 h-5"></i>
+          <span>+ บันทึกเคลมสินค้าใหม่</span>
+        </button>
+      </div>
+
+      <!-- Claims List -->
+      <div id="claims-list-container" class="space-y-4">
+        <!-- Rendered by JS -->
+      </div>
+
+    </section>
+
+
+    <!-- ================================================================= -->
+    <!-- TAB 5: ประวัติลูกค้า & VIP (CUSTOMER CRM & LIFETIME VALUE) -->
+    <!-- ================================================================= -->
+    <section id="tab-customers" class="tab-pane hidden space-y-6">
+      
+      <div class="farm-card p-5 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+              <span class="text-amber-500">🌟</span> ประวัติลูกค้า & จัดอันดับ VIP
+            </h2>
+            <p class="text-sm text-slate-500">ดูประวัติสั่งซื้อย้อนหลังได้ตลอดชีพ รวบรวมยอดสะสมประจำปีเพื่อมอบโปรโมชั่น</p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button onclick="exportCustomersToExcel()" class="btn-large bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-xl shadow-sm">
+              <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+              <span>ส่งออกรายชื่อลูกค้า Excel</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Search box -->
+        <div class="relative">
+          <i data-lucide="search" class="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5"></i>
+          <input type="text" id="search-customer-input" oninput="renderCustomersList()" placeholder="ค้นหาชื่อลูกค้า, เบอร์โทร, ที่อยู่ หรือเกรด VIP..." class="input-large pl-11 w-full">
+        </div>
+      </div>
+
+      <!-- Customer Cards Grid -->
+      <div id="customers-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Populated by JS -->
+      </div>
+
+    </section>
+
+
+    <!-- ================================================================= -->
+    <!-- TAB 6: สถิติฟาร์ม & รายงานสำหรับ CEO (ANALYTICS & REPORTS) -->
+    <!-- ================================================================= -->
+    <section id="tab-analytics" class="tab-pane hidden space-y-6">
+      
+      <div class="farm-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-sky-800 to-sky-950 text-white shadow-md">
+        <div>
+          <h2 class="text-2xl font-bold flex items-center gap-2">
+            <span>📊</span> แดชบอร์ดสรุปสถิติฟาร์ม (สำหรับ CEO / ผู้ใหญ่พร)
+          </h2>
+          <p class="text-sky-200 text-sm mt-1">สรุปยอดขายสะสม พันธุ์ปลาขายดี สัดส่วนการจัดส่ง และอัตราการเคลม</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="exportFullReportExcel()" class="btn-large btn-farm-yellow text-amber-950 py-2.5 px-5 font-bold">
+            <i data-lucide="download" class="w-5 h-5"></i>
+            <span>ดาวน์โหลดรายงานสรุปประจำปี (.xlsx)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ตัวกรองช่วงเวลา: รายเดือน / รายปี -->
+      <div class="farm-card p-4 flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2 text-sm font-bold text-slate-700">
+          <i data-lucide="filter" class="w-4 h-4 text-sky-500"></i>
+          <span>กรองช่วงเวลา:</span>
+        </div>
+
+        <!-- ปุ่ม ทั้งหมด / รายปี / รายเดือน -->
+        <div class="flex rounded-xl overflow-hidden border border-slate-200 text-sm font-semibold">
+          <button id="analytics-mode-all"
+            onclick="setAnalyticsMode('all')"
+            class="px-4 py-2 bg-sky-600 text-white hover:bg-sky-700 transition">ทั้งหมด</button>
+          <button id="analytics-mode-year"
+            onclick="setAnalyticsMode('year')"
+            class="px-4 py-2 bg-white text-slate-600 hover:bg-sky-50 transition border-l border-slate-200">รายปี</button>
+          <button id="analytics-mode-month"
+            onclick="setAnalyticsMode('month')"
+            class="px-4 py-2 bg-white text-slate-600 hover:bg-sky-50 transition border-l border-slate-200">รายเดือน</button>
+        </div>
+
+        <!-- เลือกปี -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-slate-500 font-semibold">ปี (พ.ศ.):</label>
+          <select id="analytics-year-select" onchange="renderAnalyticsDashboard()"
+            class="input-large py-1.5 px-3 text-sm rounded-lg border border-slate-200 bg-white">
+          </select>
+        </div>
+
+        <!-- เลือกเดือน (แสดงเฉพาะโหมดรายเดือน) -->
+        <div id="analytics-month-picker" class="flex items-center gap-2 hidden">
+          <label class="text-xs text-slate-500 font-semibold">เดือน:</label>
+          <select id="analytics-month-select" onchange="renderAnalyticsDashboard()"
+            class="input-large py-1.5 px-3 text-sm rounded-lg border border-slate-200 bg-white">
+            <option value="1">มกราคม</option>
+            <option value="2">กุมภาพันธ์</option>
+            <option value="3">มีนาคม</option>
+            <option value="4">เมษายน</option>
+            <option value="5">พฤษภาคม</option>
+            <option value="6">มิถุนายน</option>
+            <option value="7">กรกฎาคม</option>
+            <option value="8">สิงหาคม</option>
+            <option value="9">กันยายน</option>
+            <option value="10">ตุลาคม</option>
+            <option value="11">พฤศจิกายน</option>
+            <option value="12">ธันวาคม</option>
+          </select>
+        </div>
+
+        <!-- แสดงช่วงเวลาที่เลือก -->
+        <div id="analytics-period-label" class="ml-auto text-xs text-sky-700 font-bold bg-sky-50 px-3 py-1.5 rounded-lg border border-sky-200"></div>
+      </div>
+
+      <!-- Top 4 Metric KPI Cards -->
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="farm-card p-5 border-l-4 border-l-sky-500">
+          <div id="kpi-label-sales" class="text-slate-500 text-xs font-semibold uppercase">ยอดขายรวม</div>
+          <div id="kpi-total-sales" class="text-2xl font-bold text-sky-800 mt-1">฿0</div>
+          <div class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+            <i data-lucide="trending-up" class="w-3.5 h-3.5 text-emerald-500"></i> จากคำสั่งซื้อที่กรอง
+          </div>
+        </div>
+
+        <div class="farm-card p-5 border-l-4 border-l-amber-500">
+          <div id="kpi-label-deposit" class="text-slate-500 text-xs font-semibold uppercase">ยอดมัดจำที่เก็บแล้ว</div>
+          <div id="kpi-total-deposit" class="text-2xl font-bold text-amber-700 mt-1">฿0</div>
+          <div class="text-xs text-slate-400 mt-2">เงินสดและสแกนโอนเข้าฟาร์ม</div>
+        </div>
+
+        <div class="farm-card p-5 border-l-4 border-l-emerald-500">
+          <div id="kpi-label-orders" class="text-slate-500 text-xs font-semibold uppercase">จำนวนออเดอร์</div>
+          <div id="kpi-total-orders" class="text-2xl font-bold text-emerald-700 mt-1">0 รายการ</div>
+          <div class="text-xs text-slate-400 mt-2">ส่งถึงที่ + รับเองหน้าฟาร์ม</div>
+        </div>
+
+        <div class="farm-card p-5 border-l-4 border-l-red-500">
+          <div id="kpi-label-claims" class="text-slate-500 text-xs font-semibold uppercase">มูลค่าเคลมปลาเสียหาย</div>
+          <div id="kpi-total-claims" class="text-2xl font-bold text-red-600 mt-1">฿0</div>
+          <div class="text-xs text-slate-400 mt-2">อัตราเคลมต่ำกว่ามาตรฐาน 2%</div>
+        </div>
+      </div>
+
+
+      <!-- Detailed Breakdown Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- พันธุ์ปลาขายดียอดนิยม -->
+        <div class="farm-card p-6">
+          <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+            <i data-lucide="award" class="w-5 h-5 text-amber-500"></i>
+            <span>อันดับพันธุ์ปลาและสินค้าขายดี (Top Best Sellers)</span>
+          </h3>
+          <div id="top-products-list" class="space-y-3">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- ลูกค้า VIP ยอดสั่งซื้อสูงสุด -->
+        <div class="farm-card p-6">
+          <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+            <i data-lucide="crown" class="w-5 h-5 text-amber-500"></i>
+            <span>ลูกค้า VIP ยอดซื้อสูงสุดประจำปี (Top VIP Clients)</span>
+          </h3>
+          <div id="top-customers-list" class="space-y-3">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+    
+    <!-- ================================================================= -->
+    <!-- TAB 7: จัดการสิทธิ์การใช้งาน (PERMISSIONS MATRIX - CEO ONLY) -->
+    <!-- ================================================================= -->
+    <section id="tab-permissions" class="tab-pane hidden space-y-6">
+      
+      <!-- Top banner -->
+      <div class="farm-card p-6 bg-gradient-to-r from-amber-700 via-amber-800 to-amber-950 text-white shadow-md border-amber-600">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-3xl">🛡️</span>
+              <h2 class="text-2xl font-bold">กำหนดสิทธิ์การใช้งานในระบบ (CEO Only)</h2>
+              <span class="bg-amber-400 text-amber-950 text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">สิทธิ์เฉพาะผู้ใหญ่พร</span>
+            </div>
+            <p class="text-sm text-amber-200 mt-1">
+              เปิด-ปิดสิทธิ์การทำงานของแต่ละตำแหน่งในฟาร์มได้ทันที และระบบจะบันทึกการตั้งค่าไว้ตลอดเวลา
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="resetPermissionsToDefault()" class="btn-large bg-amber-900/60 hover:bg-amber-900 text-amber-200 hover:text-white border border-amber-500/40 text-xs py-2 px-4 rounded-xl">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+              <span>คืนค่าเริ่มต้น</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Permissions Table Card -->
+      <div class="farm-card overflow-hidden">
+        <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+          <div class="text-xs text-slate-600">
+            💡 ติ๊กถูก <strong class="text-emerald-700">✓ เพื่อเปิดให้ใช้งาน</strong> หรือเอาติ๊กออก <strong class="text-rose-600">✗ เพื่อปิดสิทธิ์การใช้งาน</strong>
+          </div>
+          <div class="text-xs text-slate-400 font-medium">
+            (มีผลทันทีหลังจากกดสลับ)
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse" id="permissions-matrix-table">
+            <thead>
+              <tr class="bg-slate-100 text-xs font-bold text-slate-700 uppercase border-b border-slate-200">
+                <th class="py-3.5 px-4 w-1/3">ฟังก์ชัน / สิทธิ์การทำงาน</th>
+                <th class="py-3.5 px-3 text-center w-40 bg-amber-50/80 text-amber-900">
+                  <div class="flex flex-col items-center">
+                    <span class="text-lg">👨‍🌾</span>
+                    <span>CEO / เจ้าของฟาร์ม</span>
+                  </div>
+                </th>
+                <th class="py-3.5 px-3 text-center w-40 bg-sky-50/80 text-sky-900">
+                  <div class="flex flex-col items-center">
+                    <span class="text-lg">📋</span>
+                    <span>ผู้จัดการฟาร์ม</span>
+                  </div>
+                </th>
+                <th class="py-3.5 px-3 text-center w-40 bg-emerald-50/80 text-emerald-900">
+                  <div class="flex flex-col items-center">
+                    <span class="text-lg">🔬</span>
+                    <span>หัวหน้า QC</span>
+                  </div>
+                </th>
+                <th class="py-3.5 px-3 text-center w-40 bg-orange-50/80 text-orange-900">
+                  <div class="flex flex-col items-center">
+                    <span class="text-lg">🚚</span>
+                    <span>คนขับรถส่งของ</span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="permissions-table-body" class="divide-y divide-slate-100 text-sm">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Drivers Management Section -->
+      <div class="farm-card overflow-hidden">
+        <div class="p-5 bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+              <span class="text-xl">🚚</span>
+              <span>จัดการรายชื่อพนักงานขับรถส่งของ</span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-1">
+              เพิ่มคนขับใหม่ แก้ไขชื่อ-เบอร์โทร-ทะเบียนรถ หรือระงับการใช้งาน
+            </p>
+          </div>
+          <button onclick="openAddDriverModal()" class="btn-large bg-orange-500 hover:bg-orange-600 text-white text-xs py-2 px-4 rounded-xl font-bold shadow-sm flex items-center gap-1.5 self-start sm:self-auto">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>+ เพิ่มคนขับรถใหม่</span>
+          </button>
+        </div>
+
+        <div class="p-5">
+          <div id="drivers-list-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ================================================================= -->
+  <!-- MODALS SECTION -->
+  <!-- ================================================================= -->
+
+  <!-- 1. MODAL บันทึกการจองพันธุ์ปลาใหม่ (NEW ORDER MODAL) -->
+  <div id="modal-new-order" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="bg-sky-600 px-6 py-4 text-white flex items-center justify-between" id="modal-order-header-bar">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl" id="modal-order-icon">📝</span>
+          <h3 class="text-xl font-bold" id="modal-order-title">บันทึกการจองพันธุ์ปลาและสินค้าใหม่</h3>
+        </div>
+        <button onclick="closeModal('modal-new-order')" class="p-1 rounded-lg hover:bg-sky-700 text-sky-100">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-6 overflow-y-auto space-y-6 flex-1">
+        <input type="hidden" id="order-edit-id" value="">
+
+        <!-- EDIT AUDIT SECTION (แสดงเฉพาะเวลาแก้ไขข้อมูลการจอง) -->
+        <div id="order-edit-audit-container" class="hidden bg-amber-50 border-2 border-amber-400 p-4 rounded-xl space-y-2.5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-amber-900 uppercase flex items-center gap-1.5">
+              <i data-lucide="history" class="w-4 h-4 text-amber-700"></i>
+              <span>บันทึกประวัติการแก้ไขข้อมูล (Audit Trail)</span>
+            </span>
+            <span class="text-[11px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full">จำเป็นต้องระบุเหตุผล</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">ผู้ทำการแก้ไข:</label>
+              <input type="text" id="order-edit-user" class="input-large w-full bg-amber-100/60 font-bold text-slate-800" readonly>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">เหตุผลในการแก้ไขข้อมูล: <span class="text-red-600">*</span></label>
+              <input type="text" id="order-edit-reason" placeholder="เช่น ลูกค้าขอเลื่อนวันส่งเพราะน้ำยังไม่พร้อม, เพิ่มปลา 2,000 ตัว" class="input-large w-full font-semibold border-amber-400 focus:ring-amber-500" required>
+            </div>
+          </div>
+        </div>
+        
+        <!-- SECTION A: ข้อมูลลูกค้า & สถานที่จัดส่ง -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-sky-900 flex items-center gap-2">
+              <i data-lucide="user" class="w-5 h-5 text-sky-600"></i>
+              <span>ข้อมูลลูกค้า</span>
+            </h4>
+            <div class="text-xs text-slate-500">หรือเลือกลูกค้าเก่าด้านล่าง</div>
+          </div>
+
+          <!-- Quick pick existing customer -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">เลือกลูกค้าเดิม (ถ้ามี):</label>
+            <select id="order-existing-customer" onchange="autoFillCustomerData(this.value)" class="input-large w-full bg-white text-sm">
+              <option value="">-- เป็นลูกค้าใหม่ หรือ กรอกข้อมูลด้านล่าง --</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อ-นามสกุล ลูกค้า: <span class="text-red-500">*</span></label>
+              <input type="text" id="order-customer-name" placeholder="เช่น กำนันสมพร บ่อทองคำ" class="input-large w-full" required>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">เบอร์โทรศัพท์: <span class="text-red-500">*</span></label>
+              <input type="tel" id="order-customer-phone" placeholder="เช่น 081-234-5678" class="input-large w-full" required>
+            </div>
+          </div>
+
+          <!-- รูปแบบการรับสินค้า (จัดส่ง vs มารับเองหน้าฟาร์ม) -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">รูปแบบการรับสินค้า: <span class="text-red-500">*</span></label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition font-semibold text-sm has-[:checked]:border-sky-600 has-[:checked]:bg-sky-50 has-[:checked]:text-sky-900">
+                <input type="radio" name="order-delivery-type" value="delivery" checked onchange="toggleDeliveryFields(true)" class="w-4 h-4 text-sky-600">
+                <span>🚚 ฟาร์มจัดส่งถึงที่</span>
+              </label>
+              <label class="flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition font-semibold text-sm has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50 has-[:checked]:text-amber-900">
+                <input type="radio" name="order-delivery-type" value="pickup" onchange="toggleDeliveryFields(false)" class="w-4 h-4 text-amber-600">
+                <span>🏠 ลูกค้ามารับเองที่หน้าฟาร์ม</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Delivery Address & Maps (ซ่อนเมื่อรับเองหน้าฟาร์ม) -->
+          <div id="delivery-address-container" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">สถานที่จัดส่ง / จุดนัดพบ: <span class="text-red-500">*</span></label>
+              <textarea id="order-customer-address" rows="2" placeholder="ระบุบ้านเลขที่ หมู่ ตำบล อำเภอ จุดสังเกตทางเข้าบ่อ..." class="input-large w-full"></textarea>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ลิงก์ Google Maps / พิกัด GPS (เพื่อให้คนขับรถกดนำทาง):</label>
+              <input type="url" id="order-customer-maps" placeholder="เช่น https://maps.app.goo.gl/... หรือ 13.9876,101.9876" class="input-large w-full">
+            </div>
+          </div>
+
+          <!-- Date and Time of delivery -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">วันนัดจัดส่ง / นัดรับของ: <span class="text-red-500">*</span></label>
+              <input type="date" id="order-delivery-date" class="input-large w-full font-semibold" required>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ช่วงเวลาที่สะดวก:</label>
+              <select id="order-delivery-time" class="input-large w-full bg-white">
+                <option value="ช่วงเช้าตรู่ (06:00 - 08:00 น.)">ช่วงเช้าตรู่ (06:00 - 08:00 น.)</option>
+                <option value="ช่วงเช้า (08:00 - 10:30 น.)" selected>ช่วงเช้า (08:00 - 10:30 น.)</option>
+                <option value="ช่วงสาย (10:30 - 12:00 น.)">ช่วงสาย (10:30 - 12:00 น.)</option>
+                <option value="ช่วงบ่าย (13:00 - 16:00 น.)">ช่วงบ่าย (13:00 - 16:00 น.)</option>
+                <option value="ช่วงเย็น (16:00 - 18:30 น.)">ช่วงเย็น (16:00 - 18:30 น.)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Driver Assignment (คนขับรถที่รับผิดชอบ) -->
+          <div id="order-driver-container" class="pt-1">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">พนักงานขับรถส่งของ:</label>
+            <select id="order-driver-select" class="input-large w-full bg-white font-medium">
+              <option value="">-- ยังไม่ได้ระบุ / จัดคนขับภายหลัง --</option>
+              <!-- Populated dynamically by JS -->
+            </select>
+          </div>
+
+        </div>
+
+        <!-- SECTION B: รายการสินค้า (ไม่จำกัดรายการ + ส่วนลดต่อหน่วย บาท/หน่วย) -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-sky-900 flex items-center gap-2">
+              <i data-lucide="fish" class="w-5 h-5 text-sky-600"></i>
+              <span>รายการพันธุ์ปลาและสินค้าที่สั่ง (เพิ่มได้ไม่จำกัด)</span>
+            </h4>
+            <span class="text-xs text-amber-700 font-semibold bg-amber-100 px-2.5 py-1 rounded-full">
+              * ส่วนลดคิดเป็น "บาทต่อหน่วย"
+            </span>
+          </div>
+
+          <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm" id="order-items-table">
+                <thead class="bg-sky-50 text-xs font-bold text-sky-900 uppercase">
+                  <tr>
+                    <th class="p-3 w-36">หมวดหมู่</th>
+                    <th class="p-3 min-w-[200px]">ชื่อสินค้า</th>
+                    <th class="p-3 w-32">ขนาด/ไซส์</th>
+                    <th class="p-3 w-48">จำนวน</th>
+                    <th class="p-3 w-20">หน่วย</th>
+                    <th class="p-3 w-28">ราคาปกติ/หน่วย</th>
+                    <th class="p-3 w-32 bg-amber-50 text-amber-900 font-bold">ลดต่อหน่วย (บ.)</th>
+                    <th class="p-3 w-32 text-right">รวมเงิน (บ.)</th>
+                    <th class="p-3 w-12 text-center">ลบ</th>
+                  </tr>
+                </thead>
+                <tbody id="order-items-tbody" class="divide-y divide-slate-100 bg-white">
+                  <!-- Dynamic Item Rows Inserted Here -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Add Row Button -->
+            <div class="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <button type="button" onclick="addOrderItemRow()" class="btn-large bg-sky-100 hover:bg-sky-200 text-sky-800 py-2 px-4 rounded-xl text-sm font-semibold">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>+ เพิ่มรายการสินค้า</span>
+              </button>
+              <div class="text-xs text-slate-500">
+                เพิ่มพันธุ์ปลา, อาหารปลา, กระชัง, หรือยารักษาโรค ได้อิสระ
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION C: สรุปยอดเงิน, ส่วนลด, มัดจำ และยอดคงเหลือ -->
+        <div class="bg-gradient-to-br from-slate-50 to-sky-50 p-5 rounded-2xl border border-sky-200 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">หมายเหตุเพิ่มเติมสำหรับการจัดส่ง:</label>
+            <textarea id="order-notes" rows="3" placeholder="เช่น อัดออกซิเจนแน่นพิเศษ, นำถังมาเปลี่ยน, โทรหาก่อนเข้า..." class="input-large w-full text-sm"></textarea>
+          </div>
+
+          <div class="space-y-2 bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-sm">
+            <div class="flex justify-between text-slate-600">
+              <span>ราคารวมก่อนหักส่วนลด:</span>
+              <span id="calc-gross-total" class="font-semibold">฿0.00</span>
+            </div>
+            <div class="flex justify-between text-amber-600 font-semibold">
+              <span>รวมส่วนลดพิเศษ (บาท):</span>
+              <span id="calc-total-discount">- ฿0.00</span>
+            </div>
+            <div class="flex justify-between text-base font-bold text-sky-900 pt-2 border-t border-slate-200">
+              <span>ยอดรวมสุทธิทั้งบิล:</span>
+              <span id="calc-net-total" class="text-lg text-sky-700">฿0.00</span>
+            </div>
+
+            <div class="pt-3 border-t border-slate-200 space-y-2">
+              <div class="flex items-center justify-between gap-3">
+                <label for="order-deposit" class="text-xs font-bold text-slate-700">ยอดเงินมัดจำ (ที่จ่ายแล้ว):</label>
+                <div class="relative w-36">
+                  <span class="absolute left-2.5 top-2 text-slate-400 text-xs">฿</span>
+                  <input type="number" id="order-deposit" oninput="calculateOrderTotals()" value="0" min="0" class="input-large pl-6 py-1.5 text-right w-full font-bold text-emerald-600">
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between gap-3">
+                <label class="text-xs font-semibold text-slate-600">วิธีชำระมัดจำ:</label>
+                <select id="order-deposit-method" class="input-large py-1 text-xs w-36 bg-slate-50">
+                  <option value="โอนเงิน">โอนเงินเข้าบัญชี</option>
+                  <option value="เงินสด">เงินสด</option>
+                </select>
+              </div>
+
+              <div class="flex justify-between items-center text-sm font-bold bg-amber-50 p-2.5 rounded-lg border border-amber-200 text-amber-900">
+                <span>ยอดคงเหลือที่ต้องเก็บวันส่ง:</span>
+                <span id="calc-remaining-balance" class="text-base text-amber-700">฿0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-100 px-6 py-4 border-t border-slate-200 flex items-center justify-end space-x-3">
+        <button type="button" onclick="closeModal('modal-new-order')" class="btn-large bg-white hover:bg-slate-200 text-slate-700 py-2.5 px-5 rounded-xl border border-slate-300">
+          ยกเลิก
+        </button>
+        <button type="button" onclick="saveNewOrder()" class="btn-large btn-farm-yellow py-2.5 px-7 rounded-xl font-bold shadow-md">
+          <i data-lucide="check" class="w-5 h-5"></i>
+          <span>บันทึกการจอง</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- 2. MODAL ดู / พิมพ์ใบจอง & ใบส่งของ (PRINT / SHARE SLIP MODAL) -->
+  <div id="modal-print-slip" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[95vh] flex flex-col overflow-hidden">
+      
+      <!-- Slip Action Bar (No Print) -->
+      <div class="bg-sky-700 px-6 py-3.5 text-white flex items-center justify-between no-print">
+        <div class="font-bold flex items-center gap-2">
+          <i data-lucide="file-text" class="w-5 h-5"></i>
+          <span>ใบสั่งจอง / ใบส่งมอบสินค้า</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="window.print()" class="btn-large bg-amber-500 hover:bg-amber-600 text-amber-950 py-1.5 px-3.5 text-sm rounded-lg font-bold">
+            <i data-lucide="printer" class="w-4 h-4"></i> พิมพ์ / บันทึก PDF
+          </button>
+          <button onclick="copyOrderSummaryForLine()" class="btn-large bg-emerald-600 hover:bg-emerald-700 text-white py-1.5 px-3.5 text-sm rounded-lg font-bold">
+            <i data-lucide="share-2" class="w-4 h-4"></i> ส่งข้อความเข้า LINE
+          </button>
+          <button onclick="closeModal('modal-print-slip')" class="p-1 rounded-lg hover:bg-sky-800 text-sky-200">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Printable Slip Content Container -->
+      <div id="print-slip-content" class="p-6 sm:p-8 overflow-y-auto bg-white text-slate-800 space-y-6">
+        <!-- Filled dynamically by JS -->
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- 3. MODAL บันทึกคิวส่ง & ชำระเงินหน้างาน (UPDATE STATUS & PAYMENT) -->
+  <div id="modal-delivery-update" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+      
+      <div class="bg-sky-600 px-6 py-4 text-white flex items-center justify-between">
+        <div class="font-bold text-lg flex items-center gap-2">
+          <i data-lucide="truck" class="w-5 h-5"></i>
+          <span>อัปเดตสถานะจัดส่ง & รับเงินหน้างาน</span>
+        </div>
+        <button onclick="closeModal('modal-delivery-update')" class="text-sky-100 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 text-sm">
+        <input type="hidden" id="update-order-id">
+
+        <div class="bg-sky-50 p-3 rounded-xl border border-sky-200">
+          <div class="font-bold text-sky-900 text-base" id="update-customer-title">ลูกค้า: กำนันสมพร</div>
+          <div class="text-xs text-slate-500 mt-0.5" id="update-order-number">รหัสการจอง: ORD-001</div>
+          <div class="text-amber-800 font-bold text-sm mt-1" id="update-balance-due">ยอดที่ต้องเก็บ: ฿0.00</div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">เปลี่ยนสถานะการส่ง:</label>
+          <select id="update-status-select" class="input-large w-full bg-white font-semibold">
+            <option value="pending">⏳ รอดำเนินการ</option>
+            <option value="preparing">🐟 กำลังเตรียมปลา / อัดออกซิเจน</option>
+            <option value="in_transit">🚚 อยู่ระหว่างเดินทาง</option>
+            <option value="delivered">✅ จัดส่งสำเร็จ / รับมอบแล้ว</option>
+            <option value="problem">⚠️ ติดปัญหาหน้างาน / มีการเคลม</option>
+          </select>
+        </div>
+
+        <!-- Payment handling section -->
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3">
+          <div class="font-bold text-slate-800 text-xs uppercase tracking-wider">การรับชำระเงินหน้างาน</div>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-slate-600 mb-1">ยอดเงินที่เก็บจริง:</label>
+              <input type="number" id="update-collected-amount" class="input-large w-full font-bold text-emerald-600">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-600 mb-1">ช่องทางชำระ:</label>
+              <select id="update-collected-method" class="input-large w-full bg-white">
+                <option value="เงินสด">💵 เงินสด</option>
+                <option value="โอนเงิน">📱 สแกน QR / โอนเงิน</option>
+                <option value="ค้างจ่าย">⚠️ ค้างจ่าย</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Attach payment slip image -->
+          <div>
+            <label class="block text-xs text-slate-600 mb-1">แนบรูปสลิปโอนเงิน (ถ้ามี):</label>
+            <input type="file" id="update-slip-file" accept="image/*" onchange="handleSlipImageUpload(event)" class="text-xs w-full text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-sky-100 file:text-sky-700 hover:file:bg-sky-200">
+            <div id="update-slip-preview" class="mt-2 hidden">
+              <img id="update-slip-img" src="" alt="สลิปโอนเงิน" class="h-28 rounded-lg border shadow-sm cursor-pointer" onclick="zoomImage(this.src)">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">หมายเหตุหน้างาน:</label>
+          <input type="text" id="update-notes-input" placeholder="เช่น ลูกค้าตรวจนับครบเรียบร้อย ปลาร่าเริงดี" class="input-large w-full text-sm">
+        </div>
+      </div>
+
+      <div class="bg-slate-100 px-6 py-3.5 border-t border-slate-200 flex justify-end space-x-2">
+        <button onclick="closeModal('modal-delivery-update')" class="btn-large bg-white hover:bg-slate-200 text-slate-700 py-2 px-4 rounded-xl border border-slate-300 text-sm">
+          ปิด
+        </button>
+        <button onclick="saveDeliveryUpdate()" class="btn-large btn-primary-blue py-2 px-5 text-sm font-bold">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>บันทึกสถานะ</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+
+  <!-- MODAL ยกเลิกการจอง (CANCEL ORDER CONFIRMATION) -->
+  <div id="modal-cancel-order" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+
+      <div class="bg-rose-600 px-6 py-4 text-white flex items-center justify-between">
+        <div class="font-bold text-lg flex items-center gap-2">
+          <i data-lucide="x-circle" class="w-5 h-5"></i>
+          <span>ยกเลิกการจอง</span>
+        </div>
+        <button onclick="closeModal('modal-cancel-order')" class="text-rose-100 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 text-sm">
+
+        <!-- Order info summary -->
+        <div class="bg-rose-50 border border-rose-200 rounded-xl p-4" id="cancel-order-info">
+          <!-- filled by JS -->
+        </div>
+
+        <div class="bg-amber-50 border border-amber-300 rounded-xl p-3 text-amber-900 text-xs flex items-start gap-2">
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0"></i>
+          <span>การยกเลิกจะ<strong>บันทึกประวัติ</strong>และ<strong>ไม่สามารถกู้คืนสถานะเดิมได้อัตโนมัติ</strong> หากต้องการแก้ไข ให้เปิดฟอร์มแก้ไขการจองแทน</span>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">
+            เหตุผลในการยกเลิก <span class="text-rose-600">*</span>
+          </label>
+          <textarea id="cancel-reason-input" rows="3" placeholder="เช่น ลูกค้าขอยกเลิก / เปลี่ยนใจไม่ซื้อ / ปลาสต็อกไม่พอ / คืนมัดจำแล้ว ฯลฯ" class="input-large w-full text-sm resize-none"></textarea>
+        </div>
+      </div>
+
+      <div class="bg-slate-100 px-6 py-3.5 border-t border-slate-200 flex justify-end gap-2">
+        <button onclick="closeModal('modal-cancel-order')" class="btn-large bg-white hover:bg-slate-200 text-slate-700 py-2 px-4 rounded-xl border border-slate-300 text-sm">
+          ยกเลิก / ปิด
+        </button>
+        <button onclick="confirmCancelOrder()" class="btn-large bg-rose-600 hover:bg-rose-700 text-white py-2 px-5 text-sm font-bold rounded-xl shadow">
+          <i data-lucide="x-circle" class="w-4 h-4"></i>
+          <span>ยืนยันยกเลิกการจอง</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+      <!-- MODAL แก้ไขข้อมูลลูกค้า -->
+      <div id="modal-edit-customer" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+          <div class="bg-sky-600 px-6 py-4 text-white flex items-center justify-between">
+            <div class="font-bold text-lg flex items-center gap-2">
+              <i data-lucide="edit-3" class="w-5 h-5"></i>
+              <span>แก้ไขข้อมูลลูกค้า</span>
+            </div>
+            <button onclick="closeModal('modal-edit-customer')" class="text-sky-100 hover:text-white">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <div class="p-6 space-y-4 text-sm">
+            <input type="hidden" id="edit-customer-id" />
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">ชื่อลูกค้า</label>
+              <input id="edit-customer-name" class="input-large w-full" type="text" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">เบอร์โทร</label>
+              <input id="edit-customer-phone" class="input-large w-full" type="text" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">ที่อยู่</label>
+              <input id="edit-customer-address" class="input-large w-full" type="text" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">หมายเหตุ (ถ้ามี)</label>
+              <textarea id="edit-customer-notes" class="input-large w-full" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="bg-slate-100 px-6 py-3.5 border-t border-slate-200 flex justify-end gap-2">
+            <button onclick="closeModal('modal-edit-customer')" class="btn-large bg-white hover:bg-slate-200 text-slate-700 py-2 px-4 rounded-xl border border-slate-300 text-sm">ยกเลิก</button>
+            <button onclick="saveCustomerEdits()" class="btn-large bg-sky-600 hover:bg-sky-700 text-white py-2 px-5 text-sm font-bold rounded-xl shadow">บันทึก</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL เพิ่ม/แก้ไขข้อมูลพนักงานขับรถ (DRIVER MODAL) -->
+      <div id="modal-driver" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div class="bg-orange-600 px-6 py-4 text-white flex items-center justify-between">
+            <div class="font-bold text-lg flex items-center gap-2">
+              <span class="text-xl">🚚</span>
+              <span id="modal-driver-title">เพิ่มพนักงานขับรถส่งของ</span>
+            </div>
+            <button onclick="closeModal('modal-driver')" class="text-orange-100 hover:text-white">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <div class="p-6 space-y-4 text-sm">
+            <input type="hidden" id="driver-edit-id" />
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">ชื่อ-นามสกุล / ชื่อเล่น <span class="text-red-500">*</span></label>
+              <input id="driver-name-input" class="input-large w-full" type="text" placeholder="เช่น พี่บุญมี, น้าสมควร" required />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">เบอร์โทรศัพท์ <span class="text-red-500">*</span></label>
+              <input id="driver-phone-input" class="input-large w-full" type="tel" placeholder="เช่น 089-123-4567" required />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">ประเภทยานพาหนะ & เลขทะเบียนรถ</label>
+              <input id="driver-vehicle-input" class="input-large w-full" type="text" placeholder="เช่น รถกระบะตู้ทึบ บธ-4512 อยุธยา" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">อีเมลเข้าระบบ</label>
+                <input id="driver-email-input" class="input-large w-full text-xs" type="email" placeholder="driver@phuyaiporn.farm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">รหัสผ่าน</label>
+                <input id="driver-password-input" class="input-large w-full text-xs" type="text" placeholder="driver1234" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">สถานะการทำงาน</label>
+              <select id="driver-status-input" class="input-large w-full bg-white font-medium">
+                <option value="active">🟢 พร้อมปฏิบัติงาน (Active)</option>
+                <option value="inactive">🔴 ระงับการใช้งานชั่วคราว (Inactive)</option>
+              </select>
+            </div>
+          </div>
+          <div class="bg-slate-100 px-6 py-3.5 border-t border-slate-200 flex justify-end gap-2">
+            <button onclick="closeModal('modal-driver')" class="btn-large bg-white hover:bg-slate-200 text-slate-700 py-2 px-4 rounded-xl border border-slate-300 text-sm">
+              ยกเลิก
+            </button>
+            <button onclick="saveDriverData()" class="btn-large bg-orange-600 hover:bg-orange-700 text-white py-2 px-5 text-sm font-bold rounded-xl shadow">
+              <i data-lucide="check" class="w-4 h-4"></i>
+              <span>บันทึกข้อมูล</span>
+            </button>
+          </div>
+        </div>
+      </div>
+  <!-- 4. MODAL แจ้งเคลมสินค้า & แนบรูปถ่าย/วิดีโอยืนยันความเสียหาย -->
+  <div id="modal-new-claim" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[94vh] flex flex-col overflow-hidden">
+
+      <!-- Header -->
+      <div class="bg-red-600 px-6 py-4 text-white flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl">📸</span>
+          <h3 class="text-xl font-bold">บันทึกเคลมสินค้า & แนบหลักฐาน</h3>
+        </div>
+        <button onclick="closeModal('modal-new-claim')" class="p-1 rounded-lg hover:bg-red-700 text-red-100">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="p-6 overflow-y-auto space-y-5 flex-1 text-sm">
+
+        <!-- เลือกออเดอร์ -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">เลือกคำสั่งซื้อที่ต้องการเคลม: <span class="text-red-500">*</span></label>
+          <select id="claim-order-select" onchange="populateClaimItems(this.value)" class="input-large w-full bg-white font-medium" required>
+            <option value="">-- เลือกออเดอร์ --</option>
+          </select>
+        </div>
+
+        <!-- รายการสินค้าเสียหาย (หลายรายการ) -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-bold text-slate-700">รายการสินค้าเสียหาย <span class="text-red-500">*</span></label>
+            <button type="button" onclick="addClaimItemRow()" class="btn-large bg-red-50 hover:bg-red-100 text-red-700 text-xs py-1 px-3 rounded-lg font-bold border border-red-200 flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> เพิ่มรายการ
+            </button>
+          </div>
+          <div id="claim-items-list" class="space-y-2">
+            <!-- rows injected by JS -->
+          </div>
+        </div>
+
+        <!-- สาเหตุความเสียหาย -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">สาเหตุความเสียหาย: <span class="text-red-500">*</span></label>
+          <select id="claim-cause-select" class="input-large w-full bg-white mb-2 font-medium">
+            <option value="ปลาน็อคน้ำระหว่างทางเนื่องจากอากาศร้อน">ปลาน็อคน้ำระหว่างทางเนื่องจากอากาศร้อน</option>
+            <option value="ถุงบรรจุรั่ว/แตก ออกซิเจนรั่ว">ถุงบรรจุรั่ว/แตก ออกซิเจนรั่ว</option>
+            <option value="ปลาไซส์ไม่สม่ำเสมอ/ไม่ตรงตามที่สั่ง">ปลาไซส์ไม่สม่ำเสมอ/ไม่ตรงตามที่สั่ง</option>
+            <option value="กระชัง/อุปกรณ์ชำรุดจากการขนส่ง">กระชัง/อุปกรณ์ชำรุดจากการขนส่ง</option>
+            <option value="อื่นๆ">อื่นๆ (ระบุด้านล่าง)</option>
+          </select>
+          <input type="text" id="claim-cause-custom" placeholder="ระบุรายละเอียดสาเหตุเพิ่มเติม..." class="input-large w-full">
+        </div>
+
+        <!-- อัปโหลดรูป/วิดีโอ สูงสุด 10 ไฟล์ -->
+        <div class="bg-red-50 p-4 rounded-xl border border-red-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-red-900 flex items-center gap-2">
+              <i data-lucide="camera" class="w-4 h-4 text-red-600"></i>
+              <span>รูปภาพ / วิดีโอยืนยันความเสียหาย <span class="text-red-500">*</span></span>
+            </label>
+            <span class="text-[11px] text-red-700 font-medium">สูงสุด 10 ไฟล์ (รูป & วิดีโอ)</span>
+          </div>
+
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="file" id="claim-media-files" accept="image/*,video/*" multiple
+              onchange="handleClaimMediaUpload(event)"
+              class="text-xs text-slate-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-red-600 file:text-white hover:file:bg-red-700 file:cursor-pointer w-full">
+          </label>
+
+          <!-- Media Preview Grid -->
+          <div id="claim-media-preview" class="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-1 min-h-[60px]">
+            <div id="claim-media-empty" class="col-span-full flex flex-col items-center justify-center py-4 text-slate-400">
+              <i data-lucide="image" class="w-8 h-8 mb-1 text-slate-300"></i>
+              <p class="text-xs">ยังไม่ได้เลือกไฟล์</p>
+            </div>
+          </div>
+          <div id="claim-media-count" class="text-xs text-slate-500 font-medium hidden">
+            เลือกแล้ว: <span id="claim-media-count-num">0</span> ไฟล์
+          </div>
+        </div>
+
+        <!-- แนวทางชดเชย -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+          <div class="font-bold text-slate-800 text-xs uppercase tracking-wider">แนวทางการชดเชยให้ลูกค้า</div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <label class="flex items-center gap-2 p-2.5 rounded-lg border bg-white cursor-pointer hover:border-sky-400 text-xs font-semibold">
+              <input type="radio" name="claim-res-type" value="deduct_balance" checked class="text-sky-600">
+              <span>หักลดยอดหน้างาน</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 rounded-lg border bg-white cursor-pointer hover:border-sky-400 text-xs font-semibold">
+              <input type="radio" name="claim-res-type" value="replace_next" class="text-sky-600">
+              <span>ส่งชดเชยรอบหน้า</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 rounded-lg border bg-white cursor-pointer hover:border-sky-400 text-xs font-semibold">
+              <input type="radio" name="claim-res-type" value="refund" class="text-sky-600">
+              <span>โอนเงินคืนลูกค้า</span>
+            </label>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">มูลค่าความเสียหายที่ชดเชย (บาท):</label>
+              <input type="number" id="claim-amount" placeholder="เช่น 300" class="input-large w-full font-bold text-red-600">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">สถานะการตรวจสอบ (QC):</label>
+              <select id="claim-qc-status" class="input-large w-full bg-white font-medium">
+                <option value="approved">✅ อนุมัติการเคลมทันที</option>
+                <option value="pending">⏳ รอฝ่าย QC ตรวจสอบ</option>
+                <option value="rejected">❌ ไม่อนุมัติ</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="bg-slate-100 px-6 py-4 border-t border-slate-200 flex justify-end space-x-3 flex-shrink-0">
+        <button onclick="closeModal('modal-new-claim')" class="btn-large bg-white hover:bg-slate-200 text-slate-700 py-2.5 px-5 rounded-xl border border-slate-300">ยกเลิก</button>
+        <button onclick="saveNewClaim()" class="btn-large bg-red-600 hover:bg-red-700 text-white py-2.5 px-6 rounded-xl font-bold shadow">
+          <i data-lucide="check" class="w-5 h-5"></i>
+          <span>บันทึกการเคลม</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+
+  <!-- 5. MODAL ขยายดูรูปภาพขนาดใหญ่ (LIGHTBOX MODAL) -->
+  <div id="modal-image-zoom" class="fixed inset-0 z-50 hidden lightbox-overlay flex items-center justify-center p-4 cursor-pointer" onclick="closeModal('modal-image-zoom')">
+    <div class="relative max-w-4xl max-h-[90vh] bg-black/40 p-2 rounded-2xl flex flex-col items-center">
+      <button onclick="closeModal('modal-image-zoom')" class="absolute -top-10 right-0 text-white hover:text-amber-400 p-2 font-bold text-lg flex items-center gap-1">
+        <i data-lucide="x" class="w-6 h-6"></i> <span>ปิด (Esc)</span>
+      </button>
+      <img id="zoom-img-target" src="" alt="ภาพขยาย" class="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl">
+    </div>
+  </div>
+
+
+  <!-- 6. MODAL ดูประวัติการแก้ไขข้อมูลการจอง (ORDER EDIT HISTORY MODAL) -->
+  <div id="modal-order-history" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="bg-gradient-to-r from-purple-700 to-indigo-800 px-6 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="history" class="w-5 h-5 text-purple-200"></i>
+          <div>
+            <h3 class="text-lg font-bold" id="history-modal-title">ประวัติการแก้ไขการจอง</h3>
+            <p class="text-xs text-purple-200" id="history-modal-subtitle">บันทึกประวัติการเปลี่ยนแปลงทั้งหมด</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-order-history')" class="text-purple-200 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-6 max-h-[70vh] overflow-y-auto space-y-3" id="history-modal-content">
+        <!-- Populated by JS -->
+      </div>
+      <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex justify-end">
+        <button onclick="closeModal('modal-order-history')" class="btn-large bg-slate-200 hover:bg-slate-300 text-slate-700 py-1.5 px-4 text-sm font-semibold rounded-lg">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. MODAL ล็อกอิน & สลับบทบาทผู้ใช้งาน (LOGIN & ROLE SWITCHER) -->
+  <div id="modal-login" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="bg-gradient-to-r from-sky-600 to-sky-800 px-6 py-5 text-white flex items-center justify-between">
+        <div>
+          <h3 class="text-xl font-bold flex items-center gap-2">
+            <span>🔐</span> เข้าสู่ระบบ / สลับบทบาท
+          </h3>
+          <p class="text-xs text-sky-200 mt-0.5">บจก.สุทธิ อินเตอร์ ฟาร์ม (ฟาร์มปลาผู้ใหญ่พร)</p>
+        </div>
+        <button onclick="closeModal('modal-login')" class="text-sky-200 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5">
+        
+        <!-- Quick Role Switch Buttons (สำหรับทดสอบ 4 บทบาทได้ทันทีในคลิกเดียว) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+            สลับบทบาทรวดเร็ว (คลิกเลือกเพื่อทดสอบ):
+          </label>
+          <div class="grid grid-cols-2 gap-2" id="quick-role-buttons">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <div class="relative flex py-1 items-center">
+          <div class="flex-grow border-t border-slate-200"></div>
+          <span class="flex-shrink mx-3 text-xs text-slate-400 font-semibold">หรือล็อกอินด้วยอีเมล</span>
+          <div class="flex-grow border-t border-slate-200"></div>
+        </div>
+
+        <!-- Email & Password Form -->
+        <form onsubmit="handleEmailLogin(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">อีเมลผู้ใช้งาน:</label>
+            <input type="email" id="login-email" placeholder="เช่น ceo@phuyaiporn.farm" class="input-large w-full text-sm" required>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสผ่าน:</label>
+            <input type="password" id="login-password" placeholder="••••••••" class="input-large w-full text-sm" required>
+          </div>
+
+          <div id="login-error-msg" class="text-xs text-red-600 hidden bg-red-50 p-2 rounded-lg border border-red-200">
+            อีเมลหรือรหัสผ่านไม่ถูกต้อง
+          </div>
+
+          <button type="submit" class="btn-large btn-primary-blue w-full font-bold shadow-md mt-2">
+            <i data-lucide="log-in" class="w-5 h-5"></i>
+            <span>เข้าสู่ระบบ</span>
+          </button>
+        </form>
+
+      </div>
+      
+    </div>
+  </div>
+
+
+  <!-- DATALIST FOR PRODUCT AUTOCOMPLETE -->
+  <datalist id="catalog-products-datalist">
+    <option value="ปลาดุกบิ๊กอุย">พันธุ์ปลา</option>
+    <option value="ปลานิลจิตรลดา">พันธุ์ปลา</option>
+    <option value="ปลาทับทิมซีพี">พันธุ์ปลา</option>
+    <option value="ปลาสวายบ่อ">พันธุ์ปลา</option>
+    <option value="ปลากดคังน้ำจืด">พันธุ์ปลา</option>
+    <option value="ปลาสลิดดอนกระเบื้อง">พันธุ์ปลา</option>
+    <option value="ปลาหมอชุมพร 1">พันธุ์ปลา</option>
+    <option value="อาหารไฮเกรด 9006T อนุบาลลูกปลา (10 กก.)">อาหารปลา</option>
+    <option value="อาหารปลาดุกเล็ก เบอร์ 1 (20 กก.)">อาหารปลา</option>
+    <option value="อาหารปลาดุกใหญ่ เบอร์ 3 (20 กก.)">อาหารปลา</option>
+    <option value="อาหารปลากินพืช เบอร์ 2 (20 กก.)">อาหารปลา</option>
+    <option value="กระชังบกเย็บสำเร็จ ผ้ายาง+มุ้งไนลอน 2x3x1.2 ม.">กระชังเลี้ยงปลา</option>
+    <option value="กระชังบกเย็บสำเร็จ ผ้ายาง+มุ้งไนลอน 3x4x1.2 ม.">กระชังเลี้ยงปลา</option>
+    <option value="กระชังน้ำมุ้งเขียว 3x4x1.5 ม. พร้อมเชือกร้อย">กระชังเลี้ยงปลา</option>
+    <option value="กระชังน้ำมุ้งเขียว 4x6x2.0 ม. หูแขวนหนาพิเศษ">กระชังเลี้ยงปลา</option>
+    <option value="ด่างทับทิมเกรดบ่อปลา ฆ่าเชื้อปรสิต (500 กรัม)">ยารักษาโรคปลา</option>
+    <option value="ยาเหลืองป้องกันแผลและเชื้อรา (ซอง 50 กรัม)">ยารักษาโรคปลา</option>
+    <option value="วิตามินซีเข้มข้น + แร่ธาตุคลายเครียดลูกปลา (1 กก.)">ยารักษาโรคปลา</option>
+    <option value="เกลือสมุทรบริสุทธิ์เกรดบ่อเพาะพันธุ์ (25 กก.)">ยารักษาโรคปลา</option>
+    <option value="จุลินทรีย์บำบัดน้ำและย่อยสลายของเสียก้นบ่อ (5 ลิตร)">ยารักษาโรคปลา</option>
+  </datalist>
+
+  <!-- SCRIPTS -->
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Lucide Icons Initialize -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+  </script>
+
+</body>
+</html>

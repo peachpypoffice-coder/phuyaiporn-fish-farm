@@ -1,0 +1,23 @@
+{
+  "name": "phuyaiporn-fish-farm",
+  "version": "1.0.0",
+  "description": "ระบบบริหารการจองพันธุ์ปลาและคิวจัดส่ง - ฟาร์มปลาผู้ใหญ่พร",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "fish-farm",
+    "booking",
+    "delivery",
+    "crm",
+    "phuyaiporn"
+  ],
+  "author": "ฟาร์มปลาผู้ใหญ่พร",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
+  }
+}

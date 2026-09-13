@@ -1,0 +1,198 @@
+@charset "UTF-8";
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --primary-blue: #0284c7;
+  --primary-blue-dark: #0369a1;
+  --primary-blue-light: #e0f2fe;
+  --farm-yellow: #f59e0b;
+  --farm-yellow-dark: #d97706;
+  --farm-yellow-light: #fef3c7;
+  --farm-bg: #f8fafc;
+  --card-border: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Prompt', 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--farm-bg);
+  color: var(--text-main);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Big Touch-Friendly Buttons (ปุ่มใหญ่ ใช้งานง่ายบนมือถือ) */
+.btn-large {
+  min-height: 48px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-large:active {
+  transform: scale(0.98);
+}
+
+.btn-primary-blue {
+  background-color: var(--primary-blue);
+  color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.2), 0 2px 4px -2px rgba(2, 132, 199, 0.15);
+}
+.btn-primary-blue:hover {
+  background-color: var(--primary-blue-dark);
+}
+
+.btn-farm-yellow {
+  background-color: var(--farm-yellow);
+  color: #78350f;
+  box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.2), 0 2px 4px -2px rgba(245, 158, 11, 0.15);
+}
+.btn-farm-yellow:hover {
+  background-color: var(--farm-yellow-dark);
+  color: #ffffff;
+}
+
+/* Badges & Tags */
+.badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Card Styles */
+.farm-card {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.farm-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Calendar Styling */
+.calendar-day-cell {
+  min-height: 100px;
+  transition: background-color 0.15s ease;
+}
+.calendar-day-cell:hover {
+  background-color: #f8fafc;
+}
+@media (max-width: 640px) {
+  .calendar-day-cell {
+    min-height: 60px;
+    padding: 0.25rem;
+  }
+}
+
+/* Lightbox / Zoom Modal */
+.lightbox-overlay {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+/* Form Inputs with large touch area */
+input, select, textarea {
+  font-family: inherit;
+}
+.input-large {
+  min-height: 46px;
+  padding: 0.65rem 1rem;
+  border-radius: 0.65rem;
+  border: 1.5px solid #cbd5e1;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input-large:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
+}
+
+/* Print Stylesheet (พิมพ์ใบจอง / ใบส่งของ) */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-slip-modal, #print-slip-modal * {
+    visibility: visible;
+  }
+  #print-slip-modal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #ffffff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only-shadow-none {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
+
+/* ====================================================================
+   MOBILE OPTIMIZATIONS FOR DRIVER (สำหรับคนขับรถบนมือถือ)
+   ==================================================================== */
+@media (max-width: 640px) {
+  /* เพิ่มขนาดปุ่มสัมผัสบนมือถือให้กดง่าย ไม่กดพลาด */
+  .btn-large {
+    min-height: 48px;
+    font-size: 0.95rem;
+    padding: 0.75rem 1rem;
+  }
+
+  /* ปรับการ์ดคิวส่งบนมือถือให้เต็มจอ กระชับ และสบายตา */
+  .farm-card {
+    border-radius: 0.875rem;
+    padding: 1rem !important;
+  }
+
+  /* ปุ่มโทรออกและนำทางให้เด่นชัดบนมือถือ */
+  .driver-quick-action {
+    min-height: 44px;
+    font-weight: 700;
+  }
+
+  /* Tab bar จัดให้เรียงสวยและมีขนาดกดได้สะดวก */
+  .nav-tab-btn {
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+  }
+}
