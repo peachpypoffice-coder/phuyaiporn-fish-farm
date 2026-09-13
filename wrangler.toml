@@ -1,10 +1,14 @@
 name = "phuyaiporn-fish-farm"
+main = "_worker.js"
 compatibility_date = "2024-09-01"
-pages_build_output_dir = "."
+
+# Cloudflare Static Assets
+[assets]
+directory = "."
+binding = "ASSETS"
 
 # Cloudflare D1 Database Binding
-# ใช้ชื่อ binding ว่า DB เพื่อเรียกใช้งานผ่าน env.DB ใน Pages Functions
 [[d1_databases]]
 binding = "DB"
 database_name = "phuyaiporn-db"
-database_id = "phuyaiporn-db" # เมื่อสร้าง D1 บน Cloudflare Dashboard ให้นำ Database ID มาวางที่นี่
+database_id = "phuyaiporn-db"
